@@ -1,0 +1,1 @@
+module.exports={wideRuns:{type:Number,default:1},noBallRuns:{type:Number,default:1},wideBall:{type:Boolean,default:false},noBallBall:{type:Boolean,default:false}};
