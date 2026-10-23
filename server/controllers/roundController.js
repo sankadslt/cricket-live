@@ -1,13 +1,13 @@
 const {Team,Round,Match}=require('../models');const D=require('../utils/draw'),{roundTables}=require('../utils/tables');
 const int=(v,min,l)=>{v=Number(v);if(!Number.isInteger(v)||v<min)throw new Error(l+' is not valid');return v};
 const sameSet=(a,b)=>JSON.stringify(a.map(String))===JSON.stringify(b.map(String));
-const rulesOf=r=>({wideRuns:r.rules.wideRuns,noBallRuns:r.rules.noBallRuns,wideBall:r.rules.wideBall,noBallBall:r.rules.noBallBall});
+const rulesOf=r=>require('../utils/rules').pick(r.rules);
 const nextNo=async()=>((await Match.findOne().sort('-no'))?.no||0)+1;
 
 async function clean(b,cat){const r=b.rules||{},p=b.points||{},name=String(b.name||'').trim();if(!name)throw new Error('Enter the round name');
  if(!['league','knockout'].includes(b.format))throw new Error('Select league or knockout');
  const out={name,format:b.format,overs:int(b.overs,1,'Overs'),ballsPerOver:int(b.ballsPerOver,1,'Balls per over'),
-  rules:{wideRuns:int(r.wideRuns,0,'Wide runs'),noBallRuns:int(r.noBallRuns,0,'No ball runs'),wideBall:!!r.wideBall,noBallBall:!!r.noBallBall},
+  rules:{wideRuns:int(r.wideRuns,0,'Wide runs'),noBallRuns:int(r.noBallRuns,0,'No ball runs'),wideBall:!!r.wideBall,noBallBall:!!r.noBallBall,lastBallCounts:!!r.lastBallCounts},
   points:{win:int(p.win,0,'Win points'),tie:int(p.tie,0,'Tie points'),loss:int(p.loss,0,'Loss points')}};
  const ids=b.format==='league'?(b.groups||[]).flatMap(g=>g.teams||[]):(b.teams||[]);
  if(new Set(ids.map(String)).size!==ids.length)throw new Error('A team can be added only once in a round');

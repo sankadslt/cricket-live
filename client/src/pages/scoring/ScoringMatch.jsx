@@ -31,7 +31,7 @@ function Done({ m }) {
 // 4 steps: who scores -> toss -> live / hand-written -> rules (default of the round or special for this match)
 function Setup({ m, onDone }) {
   const { act, t } = useApp(), [users] = useGet('/users'), [st, setSt] = useState(0);
-  const [f, setF] = useState({ scorerId: session.id, winner: '', elected: '', mode: '', rulesMode: 'default', rules: { overs: m.overs, ballsPerOver: m.ballsPerOver, wideRuns: m.rules.wideRuns, noBallRuns: m.rules.noBallRuns, wideBall: m.rules.wideBall, noBallBall: m.rules.noBallBall } });
+  const [f, setF] = useState({ scorerId: session.id, winner: '', elected: '', mode: '', rulesMode: 'default', rules: { overs: m.overs, ballsPerOver: m.ballsPerOver, wideRuns: m.rules.wideRuns, noBallRuns: m.rules.noBallRuns, wideBall: m.rules.wideBall, noBallBall: m.rules.noBallBall, lastBallCounts: !!m.rules.lastBallCounts } });
   const [pop, setPop] = useState(false);
   if (!users) return <Loading />;
   const set = o => setF({ ...f, ...o }), R = f.rulesMode === 'special' ? f.rules : { overs: m.overs, ballsPerOver: m.ballsPerOver, ...m.rules };
@@ -53,7 +53,8 @@ function Setup({ m, onDone }) {
     {st === 3 && <><h4>Match rules</h4>
       <div className="card plain rules"><div className="rrow"><span>Overs</span><b>{R.overs}</b></div><div className="rrow"><span>Balls per over</span><b>{R.ballsPerOver}</b></div>
         <div className="rrow"><span>Wide</span><b>{R.wideRuns} {pl(R.wideRuns)}, {R.wideBall ? 'counts as a ball' : 'ball is re-bowled'}</b></div>
-        <div className="rrow"><span>No ball</span><b>{R.noBallRuns} {pl(R.noBallRuns)}, {R.noBallBall ? 'counts as a ball' : 'ball is re-bowled'}</b></div></div>
+        <div className="rrow"><span>No ball</span><b>{R.noBallRuns} {pl(R.noBallRuns)}, {R.noBallBall ? 'counts as a ball' : 'ball is re-bowled'}</b></div>
+        <div className="rrow"><span>Last ball of 2nd innings</span><b>{R.lastBallCounts ? 'wide / no ball counts as a ball' : 'wide / no ball is re-bowled'}</b></div></div>
       <Pick value={f.rulesMode} onChange={v => { set({ rulesMode: v }); if (v === 'special') setPop(true) }} items={[{ v: 'default', l: '✓ Use ' + m.round?.name + ' rules', sub: 'default' }, { v: 'special', l: '⚙ Special rules for this match' }]} />
       {f.rulesMode === 'special' && <button onClick={() => setPop(true)}>Edit special rules</button>}
       <div className="card plain sub"><b>Summary</b><div className="mut">Scorer: {users.find(u => u._id === f.scorerId)?.name} · Toss: {name(f.winner)} chose to {f.elected} · {f.mode === 'live' ? 'Live' : 'Hand-written sheet'}</div></div></>}
@@ -63,6 +64,7 @@ function Setup({ m, onDone }) {
       <div className="grid"><Field l="Overs" t="number" min="1" v={f.rules.overs} on={v => set({ rules: { ...f.rules, overs: +v } })} /><Field l="Balls per over" t="number" min="1" v={f.rules.ballsPerOver} on={v => set({ rules: { ...f.rules, ballsPerOver: +v } })} /></div>
       <div className="grid"><Field l="Wide gives (runs)" t="number" min="0" v={f.rules.wideRuns} on={v => set({ rules: { ...f.rules, wideRuns: +v } })} /><Field l="No ball gives (runs)" t="number" min="0" v={f.rules.noBallRuns} on={v => set({ rules: { ...f.rules, noBallRuns: +v } })} /></div>
       <Toggle l="Wide counts as a ball" v={f.rules.wideBall} on={v => set({ rules: { ...f.rules, wideBall: v } })} /><Toggle l="No ball counts as a ball" v={f.rules.noBallBall} on={v => set({ rules: { ...f.rules, noBallBall: v } })} />
+      <Toggle l="Last ball of the 2nd innings counts" sub="a wide / no ball on the very last ball is not re-bowled; its runs are added" v={f.rules.lastBallCounts} on={v => set({ rules: { ...f.rules, lastBallCounts: v } })} />
       <div className="actions"><button onClick={() => { set({ rulesMode: 'default' }); setPop(false) }}>Use default instead</button><button className="p" onClick={() => setPop(false)}>Use these rules</button></div></Modal>}
   </div>;
 }

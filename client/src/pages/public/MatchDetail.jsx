@@ -33,6 +33,7 @@ export default function MatchDetail() {
         <div className="rrow"><span>Overs</span><b>{m.overs}</b></div><div className="rrow"><span>Balls per over</span><b>{m.ballsPerOver}</b></div>
         <div className="rrow"><span>Wide</span><b>{m.rules.wideRuns} run(s){m.rules.wideBall ? ', counts as a ball' : ', re-bowled'}</b></div>
         <div className="rrow"><span>No ball</span><b>{m.rules.noBallRuns} run(s){m.rules.noBallBall ? ', counts as a ball' : ', re-bowled'}</b></div>
+        <div className="rrow"><span>Last ball of 2nd innings</span><b>{m.rules.lastBallCounts ? 'wide / no ball counts as a ball' : 'wide / no ball is re-bowled'}</b></div>
         {m.scorer && <div className="rrow"><span>Scorer</span><b>{m.scorer.name}</b></div>}</div>}
     </>}
   </>;

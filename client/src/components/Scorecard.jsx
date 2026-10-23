@@ -29,6 +29,7 @@ export function Bowling({ I, team, bpo }) {
 export function Reconcile({ I, open }) {
   const s = I.sum, e = s.extras, bowlBat = s.bat - s.diff, bowlSide = bowlBat + e.wd + e.nb + e.bye + e.lb, ok = !s.mismatch && s.bat + e.total === bowlSide;
   return <details className={'card rec ' + (ok ? 'ok' : 'bad')} open={open || !ok}><summary><b>{I.team.name} — score check</b><span className={'chip ' + (ok ? 'done' : 'live')}>{ok ? '✓ Matches' : '✗ Does not match'}</span></summary>
+    <div className="rec-sum">Batsmen {s.bat} + Extras {e.total} = <b>{s.bat + e.total}</b> &nbsp;·&nbsp; Bowlers {bowlBat + e.wd + e.nb} + Byes / Leg byes {e.bye + e.lb} = <b>{bowlSide}</b></div>
     <div className="rec-g">
       <div><h4>Batters' side</h4>
         <div className="rrow"><span>Runs scored by batters</span><b>{s.bat}</b></div>

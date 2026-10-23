@@ -6,7 +6,7 @@ import Modal from '../../components/Modal';
 import { Badge, Chip, Empty, Field, Loading, Pick, Toggle } from '../../components/ui';
 
 const LET = 'ABCDEFGH';
-const newRound = () => ({ name: '', format: 'league', overs: 10, ballsPerOver: 6, rules: { wideRuns: 1, noBallRuns: 1, wideBall: false, noBallBall: false }, points: { win: 2, tie: 1, loss: 0 }, groups: [{ name: 'A', teams: [] }], teams: [] });
+const newRound = () => ({ name: '', format: 'league', overs: 10, ballsPerOver: 6, rules: { wideRuns: 1, noBallRuns: 1, wideBall: false, noBallBall: false, lastBallCounts: false }, points: { win: 2, tie: 1, loss: 0 }, groups: [{ name: 'A', teams: [] }], teams: [] });
 
 export default function Rounds() {
   const { cat, t, act, ask, toast } = useApp(), [rs, load] = useGet('/rounds?category=' + cat), [ts] = useGet('/teams?category=' + cat), [ed, setEd] = useState(null);
@@ -23,12 +23,14 @@ export default function Rounds() {
     {rs.map(r => { const p = r.progress, pct = p.total ? Math.round(p.done * 100 / p.total) : 0, ru = r.rules; return <div className="card round" key={r._id}>
       <div className="row"><h3>{r.name} <Chip kind={r.format === 'league' ? '' : 'live'}>{r.format === 'league' ? t('League') : t('Knockout')}</Chip></h3>
         <div><button onClick={() => open(r)}>{t('Edit')}</button><button className="danger-o" onClick={() => del(r)} title="Delete">🗑</button></div></div>
-      <div className="mut">{r.overs} overs · {r.ballsPerOver} balls/over · wide {ru.wideRuns} run{ru.wideRuns === 1 ? '' : 's'}{ru.wideBall ? ' (counts as ball)' : ' (re-bowl)'} · no ball {ru.noBallRuns}{ru.noBallBall ? ' (counts as ball)' : ' (re-bowl)'}{r.format === 'league' && ` · win ${r.points.win} / tie ${r.points.tie} / loss ${r.points.loss}`}</div>
+      <div className="mut">{r.overs} overs · {r.ballsPerOver} balls/over · wide {ru.wideRuns} run{ru.wideRuns === 1 ? '' : 's'}{ru.wideBall ? ' (counts as ball)' : ' (re-bowl)'} · no ball {ru.noBallRuns}{ru.noBallBall ? ' (counts as ball)' : ' (re-bowl)'}{ru.lastBallCounts ? ' · last ball of 2nd innings counts' : ''}{r.format === 'league' && ` · win ${r.points.win} / tie ${r.points.tie} / loss ${r.points.loss}`}</div>
       <div className="chips">{r.format === 'league' ? r.groups.map(g => <span key={g.name} className="grp"><b>{t('Group')} {g.name}</b> {g.teams.map(name).join(', ') || '—'}</span>) : <span className="grp">{r.teams.map((id, i) => `${i + 1}. ${name(id)}`).join('  ') || 'No teams'}</span>}</div>
       <div className="bar" aria-label={`${pct}% finished`}><i style={{ width: pct + '%' }} /></div>
       <div className="row"><span className="mut">{p.total ? `${p.done}/${p.total} matches finished${p.live ? ` · ${p.live} live` : ''}` : 'No fixtures yet'}</span>
         {p.total === 0 ? <button className="p" onClick={() => gen(r)}>⚡ Generate fixtures</button> : <button onClick={() => clr(r)}>Clear fixtures</button>}</div></div> })}
-    {ed && <Editor ed={ed} setEd={setEd} ts={ts} rs={rs} cat={cat} locked={ed._id && rs.find(r => r._id === ed._id)?.progress.total > 0} onSaved={() => { setEd(null); load() }} />}
+    {ed && <Editor ed={ed} setEd={setEd} ts={ts} rs={rs} cat={cat} locked={ed._id && rs.find(r => r._id === ed._id)?.progress.total > 0} onSaved={async (r, isNew) => { setEd(null); load();
+      const can = r.format === 'league' ? r.groups.some(g => g.teams.length > 1) : r.teams.length > 1;
+      if (isNew && can && await ask({ title: 'Generate the matches now?', text: `Create all the fixtures of ${r.name} automatically. You can set the date, time and pitch next.`, ok: 'Generate fixtures' })) gen(r) }} />}
   </>;
 }
 
@@ -38,7 +40,7 @@ function Editor({ ed, setEd, ts, rs, cat, locked, onSaved }) {
   const save = async () => {
     const body = { ...ed, category: cat }; if (ed.format === 'league') body.groups = ed.groups.filter(g => g.teams.length); else body.teams = ed.teams;
     const r = await act(() => ed._id ? api('/rounds/' + ed._id, 'PUT', body) : api('/rounds', 'POST', body), 'Round saved');
-    if (r) onSaved();
+    if (r) onSaved(r, !ed._id);
   };
   // ----- league groups -----
   const groupOf = id => ed.groups.findIndex(g => g.teams.includes(id));
@@ -63,6 +65,7 @@ function Editor({ ed, setEd, ts, rs, cat, locked, onSaved }) {
     <div className="grid"><Field l="Wide gives (runs)" t="number" min="0" v={ed.rules.wideRuns} on={v => rule('wideRuns', +v)} /><Field l="No ball gives (runs)" t="number" min="0" v={ed.rules.noBallRuns} on={v => rule('noBallRuns', +v)} /></div>
     <div className="grid"><Toggle l="Wide counts as a ball" sub={ed.rules.wideBall ? 'yes: one ball is used' : 'no: ball is re-bowled'} v={ed.rules.wideBall} on={v => rule('wideBall', v)} />
       <Toggle l="No ball counts as a ball" sub={ed.rules.noBallBall ? 'yes: one ball is used' : 'no: ball is re-bowled'} v={ed.rules.noBallBall} on={v => rule('noBallBall', v)} /></div>
+    <Toggle l="Last ball of the 2nd innings counts" sub={ed.rules.lastBallCounts ? 'yes: a wide / no ball on the very last ball is NOT re-bowled. It counts as the last ball and its runs are added.' : 'no: a wide / no ball on the last ball is re-bowled (normal rule)'} v={ed.rules.lastBallCounts} on={v => rule('lastBallCounts', v)} />
     {ed.format === 'league' && <><h4>Points</h4><div className="grid"><Field l="Win" t="number" min="0" v={ed.points.win} on={v => pt('win', +v)} /><Field l="Tie" t="number" min="0" v={ed.points.tie} on={v => pt('tie', +v)} /><Field l="Loss" t="number" min="0" v={ed.points.loss} on={v => pt('loss', +v)} /></div></>}
     <h4>{ed.format === 'league' ? 'Groups and teams' : 'Teams in the draw'}</h4>
     {locked && <div className="hint">Fixtures are already generated, so teams and groups are locked. Clear the fixtures to change them. Rules can still be changed (matches that have not started follow them).</div>}

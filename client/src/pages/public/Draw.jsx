@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import useGet from '../../lib/useGet';
+import DrawTree from '../../components/DrawTree';
 import Bracket from '../../components/Bracket';
 import MatchCard from '../../components/MatchCard';
-import { Empty, Loading, Chip } from '../../components/ui';
+import { Empty, Loading, Chip, Pick } from '../../components/ui';
 import { PointsTable } from './Points';
 
 // The whole tournament: Round 1 -> Round 2 -> ... Each round shows its groups or its knockout diagram.
 // Results update it automatically (the winner moves to the next match).
 export default function Draw() {
-  const { cat, t } = useApp(), [rounds] = useGet('/stats/draw?category=' + cat, 15000), [sel, setSel] = useState(null);
+  const { cat, t } = useApp(), [rounds] = useGet('/stats/draw?category=' + cat, 15000), [sel, setSel] = useState(null), [view, setView] = useState('tree');
   useEffect(() => setSel(null), [cat]);
   if (!rounds) return <Loading />;
   if (!rounds.length) return <Empty icon="🗺" text="The draw will be published soon." />;
@@ -18,11 +19,13 @@ export default function Draw() {
   const all = rounds.flatMap(r => r.matches), up = all.filter(m => m.status !== 'done' && m.teamA._id && m.teamB._id).sort((a, b) => (a.status === 'live' ? -1 : 0) - (b.status === 'live' ? -1 : 0) || a.no - b.no).slice(0, 3);
   const mark = { done: '✓', live: '●', upcoming: '○', empty: '○' };
   return <>
-    <ol className="flow" aria-label="Rounds">{rounds.map((r, i) => <li key={r._id}><button className={(cur._id === r._id ? 'on ' : '') + r.status} onClick={() => setSel(r._id)}>
-      <small>{mark[r.status]} {r.format === 'league' ? t('League') : t('Knockout')}</small><b>{r.name}</b></button>{i < rounds.length - 1 && <span className="arr">›</span>}</li>)}</ol>
+    <Pick value={view} onChange={setView} items={[{ v: 'tree', l: '🌳 Decision tree (image)' }, { v: 'rounds', l: '📋 Round by round' }]} />
+    {view === 'tree' && <DrawTree rounds={rounds} title={`SLT Games 2026 Cricket · ${cat === 'boys' ? 'Boys' : 'Girls'} · Match draw`} />}
+    {view === 'rounds' && <ol className="flow" aria-label="Rounds">{rounds.map((r, i) => <li key={r._id}><button className={(cur._id === r._id ? 'on ' : '') + r.status} onClick={() => setSel(r._id)}>
+      <small>{mark[r.status]} {r.format === 'league' ? t('League') : t('Knockout')}</small><b>{r.name}</b></button>{i < rounds.length - 1 && <span className="arr">›</span>}</li>)}</ol>}
     {up.length > 0 && <div className="card upnext"><b>▶ {t("What's next")}</b>
       <div className="upl">{up.map(m => <Link key={m._id} to={'/match/' + m._id}><span>#{m.no} {m.round?.name} · {m.group ? t('Group') + ' ' + m.group : m.label}</span><b>{m.teamA.name} vs {m.teamB.name}</b><small>{m.status === 'live' ? '🔴 LIVE' : `${m.date || 'Date TBA'} ${m.time || ''} · ${t('Pitch')} ${m.pitch}`}</small></Link>)}</div></div>}
-    <RoundView r={cur} />
+    {view === 'rounds' && <RoundView r={cur} />}
   </>;
 }
 

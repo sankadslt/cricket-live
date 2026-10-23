@@ -15,7 +15,7 @@ The first super admin is created from `ADMIN_USER` / `ADMIN_PASS` in `server/.en
 2. **Rounds** – any number: Round 1, Round 2 … n. Each round has its **own rules** (overs, balls per over, wide / no-ball runs and whether they count as a ball, points) and a format:
    - **League**: choose the number of groups and the teams of each group. Everyone in a group plays everyone once. Points table per group (points, then NRR).
    - **Knockout**: choose teams in draw order (or "Fill from the previous league round: top N"). Byes are added automatically. Winners move to the next match by themselves.
-3. **Generate fixtures** for each round (button on the round card).
+3. **Generate fixtures** for each round: the question appears right after you save a round, or use the button on the round card / in Schedule (you can also add one league match by hand in Schedule).
 4. **Schedule** – date, time, pitch per match, or "Fill automatically" over several pitches.
 5. **Scoring** – see below.
 
@@ -27,8 +27,16 @@ Wizard: who scores → toss → live or hand-written sheet → rules (round defa
 - **Second innings** shows the target and "X need N runs from B balls"; when the chase ends, "X won by …" is shown to the scorer and to the public.
 - A tied **knockout** match asks for the tie-break winner.
 
+## Scoring rules enforced by the system
+- Both batters are chosen first (striker + non-striker). **Strike changes by itself**: odd runs (including runs run on wides, no balls, byes, leg byes) and the end of every over. After a wicket the next batter is chosen.
+- **One bowler bowls the whole over** and cannot bowl two overs in a row (live scoring and quick entry).
+- A wicket ball counts as a ball faced by the batter who got out (shown as W in his balls).
+- No more balls than overs x balls per over; **no runs can be added once the chasing team has won** or the innings is over.
+- Round / match rule **"Last ball of the 2nd innings counts"**: when on, a wide / no ball on the very last ball is not re-bowled; it counts as the last ball and its runs are added.
+- Score check: Batsmen runs + Extras = Total = Bowlers' runs (bat + wides + no balls) + byes + leg byes.
+
 ## Public pages
-Fixtures (live / upcoming / done, auto refresh) · **Draw** (round flow, group tables, knockout diagram, "What's next", tap a team to highlight) · Points · Top 10 (runs, wickets, sixes, fours) · Teams · Match scorecard (batting with how out, bowling, overs, best players, rules).
+Fixtures (live / upcoming / done, auto refresh) · **Draw** (decision-tree picture of the whole tournament with a *Download image* button, round-by-round view, "What's next", tap a team to highlight) · Points · Top 10 (runs, wickets, sixes, fours) · Teams · Match scorecard (batting with how out, bowling, overs, best players, rules).
 
 ## Folder structure
 ```

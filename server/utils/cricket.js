@@ -1,5 +1,6 @@
 // Pure cricket logic. No database here.
-const TOK=/^(?:(\d)|(W)|(Wd)(\d?)|(Nb)(\d?)|(B)(\d)|(L)(\d))$/i;
+// a trailing ! = this wide / no ball counts as a ball (last ball of the 2nd innings rule)
+const TOK=/^(?:(\d)|(W)|(Wd)(\d?)|(Nb)(\d?)|(B)(\d)|(L)(\d))(!)?$/i;
 const OUTS=['bowled','caught','lbw','run out','stumped','hit wicket'];
 const parseMarks=s=>Array.isArray(s)?s:String(s||'').trim().split(/[\s,]+/).filter(Boolean);
 
@@ -8,8 +9,8 @@ function fromMarks(marks,R){const o={balls:0,runs:0,bat:0,wk:0,wd:0,nb:0,wdRuns:
  for(const t of marks){const m=TOK.exec(String(t).trim());if(!m)throw new Error('Bad ball mark: "'+t+'"');
   if(m[1]!==undefined){o.balls++;o.runs+=+m[1];o.bat+=+m[1]}
   else if(m[2]){o.balls++;o.wk++}
-  else if(m[3]){o.wd++;const r=R.wideRuns+(+m[4]||0);o.runs+=r;o.wdRuns+=r;o.ex+=r;if(R.wideBall)o.balls++}
-  else if(m[5]){const b=+m[6]||0;o.nb++;o.runs+=R.noBallRuns+b;o.nbRuns+=R.noBallRuns;o.ex+=R.noBallRuns;o.bat+=b;if(R.noBallBall)o.balls++}
+  else if(m[3]){o.wd++;const r=R.wideRuns+(+m[4]||0);o.runs+=r;o.wdRuns+=r;o.ex+=r;if(R.wideBall||m[11])o.balls++}
+  else if(m[5]){const b=+m[6]||0;o.nb++;o.runs+=R.noBallRuns+b;o.nbRuns+=R.noBallRuns;o.ex+=R.noBallRuns;o.bat+=b;if(R.noBallBall||m[11])o.balls++}
   else if(m[7]){o.balls++;o.bye+=+m[8]}
   else{o.balls++;o.lb+=+m[10]}}
  return o}
@@ -76,4 +77,11 @@ function bestOf(m){let bat=null,bow=null;
  m.innings.forEach((I,i)=>{for(const b of I.batters)if(!bat||b.runs>bat.runs||(b.runs===bat.runs&&b.balls<bat.balls))bat={...b,team:I.team&&I.team.name,sr:b.balls?+(b.runs*100/b.balls).toFixed(1):0};
   const other=m.innings[1-i];for(const w of I.sum.bowl)if(!bow||w.wk>bow.wk||(w.wk===bow.wk&&w.runs<bow.runs))bow={name:w.name,wk:w.wk,runs:w.runs,balls:w.balls,team:other&&other.team&&other.team.name,econ:w.balls?+(w.runs/(w.balls/m.ballsPerOver)).toFixed(2):0}});
  return{bat,bow:bow&&bow.wk>0?bow:null}}
-module.exports={TOK,OUTS,parseMarks,fromMarks,overs,inningsSum,rebuild,outcomeOf,pointsTable,top10,bestOf};
+// Live scoring: who is bowling the current over, balls left in it, and who bowled the last finished over
+function overState(m,inn){let bowler=null,left=0,last=null,legal=0;const bpo=m.ballsPerOver||6;
+ for(const b of (m.log||[])){if(b.inn!==inn)continue;
+  if(!bowler){bowler=b.bowler;legal=0}
+  if(fromMarks([b.token],m.rules).balls>0)legal++;
+  if(legal>=bpo){last=bowler;bowler=null;legal=0}}
+ return{bowler,left:bowler?bpo-legal:0,last}}
+module.exports={overState,TOK,OUTS,parseMarks,fromMarks,overs,inningsSum,rebuild,outcomeOf,pointsTable,top10,bestOf};
